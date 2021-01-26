@@ -1,0 +1,10 @@
+{
+  "name": "com.daruma-works.scene-reference",
+  "version": "1.0.0",
+  "displayName": "Scene Reference",
+  "description": "Serializable scene references.  Forked from Unity Atoms scene-mgmt package.",
+  "unity": "2019.4",
+  "author": {
+    "name": "Adam Ramberg"
+  }
+}
