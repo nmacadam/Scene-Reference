@@ -52,6 +52,21 @@ namespace Oni.SceneManagement.Editor
             Rect lower;
             Rect buttonRect = new Rect();
             var scene = property.FindPropertyRelative("_sceneAsset")?.objectReferenceValue;
+            bool isRuntimeReference = property.FindPropertyRelative("_isRuntimeReference").boolValue;
+
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                if (isRuntimeReference)
+                {
+                    position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+                    bool guiEnabled = GUI.enabled;
+                    GUI.enabled = false;
+                    string sceneName = property.FindPropertyRelative("_sceneName").stringValue;
+                    EditorGUI.LabelField(position, sceneName + " (Runtime reference)");
+                    GUI.enabled = guiEnabled;
+                    return;
+                }
+            }
 
             if (scene == null)
             {

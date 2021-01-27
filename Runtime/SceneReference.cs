@@ -35,6 +35,9 @@ namespace Oni.SceneManagement
         [SerializeField]
         private Object _sceneAsset;
 
+        [SerializeField]
+        private bool _isRuntimeReference;
+
         /// <summary>
         /// Name of the scene.
         /// </summary>
@@ -75,10 +78,61 @@ namespace Oni.SceneManagement
         /// <value>Set the scene asset.</value>
         private Object SceneAsset { set { _sceneAsset = value; } } // NOTE: Needed in order to supress warning CS0649
 
+        public SceneReference(string scenePath)
+        {
+            _sceneAsset = null;
+            _isRuntimeReference = true;
+
+            _scenePath = scenePath;
+            _buildIndex = SceneUtility.GetBuildIndexByScenePath(scenePath);
+            if (_buildIndex == -1)
+            {
+                throw new ArgumentException($"The scene at '{scenePath}' does not have a valid build index.");
+            }
+
+            _sceneName = GetSceneNameFromScenePath(_scenePath);
+            callbackOrder = 0;
+        }
+
+        public SceneReference(int buildIndex)
+        {
+            _sceneAsset = null;
+            _isRuntimeReference = true;
+
+            if (SceneManager.sceneCountInBuildSettings == 0 ||
+                buildIndex >= SceneManager.sceneCountInBuildSettings || 
+                buildIndex < 0)
+            {
+                throw new ArgumentException($"{buildIndex} is not a valid build index.");
+            }
+
+            _buildIndex = buildIndex;
+            _scenePath = SceneUtility.GetScenePathByBuildIndex(buildIndex);
+            _sceneName = GetSceneNameFromScenePath(_scenePath);
+            callbackOrder = 0;
+        }
+
+        public SceneReference(Scene scene)
+        {
+            if (scene == null)
+            {
+                throw new ArgumentException("Parameter 'scene' is invalid.");
+            }
+            if (scene.buildIndex == -1)
+            {
+                throw new ArgumentException("Parameter 'scene' is invalid.");
+            }
+
+            _sceneAsset = null;
+            _isRuntimeReference = true;
+            _sceneName = scene.name;
+            _scenePath = scene.path;
+            _buildIndex = scene.buildIndex;
+            callbackOrder = 0;
+        }
 
         // makes it work with the existing Unity methods (LoadLevel/LoadScene)
         public static implicit operator string(SceneReference sceneField) { return sceneField.SceneName; }
-
 
         public int callbackOrder { get; }
 
@@ -88,6 +142,11 @@ namespace Oni.SceneManagement
             if (!EditorApplication.isPlayingOrWillChangePlaymode
             || EditorApplication.isCompiling
             ) return;
+            
+            if (_isRuntimeReference)
+            {
+                return;
+            }
 
             if (_sceneAsset == null)
             {
@@ -109,6 +168,15 @@ namespace Oni.SceneManagement
 #endif
             }
 #endif
+        }
+
+        private static string GetSceneNameFromScenePath(string scenePath)
+        {
+            // Unity's asset paths always use '/' as a path separator
+            var sceneNameStart = scenePath.LastIndexOf("/", StringComparison.Ordinal) + 1;
+            var sceneNameEnd = scenePath.LastIndexOf(".", StringComparison.Ordinal);
+            var sceneNameLength = sceneNameEnd - sceneNameStart;
+            return scenePath.Substring(sceneNameStart, sceneNameLength);
         }
 
         public void OnBeforeSerialize() { Validate(); }
